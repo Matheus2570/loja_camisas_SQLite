@@ -82,7 +82,7 @@ const produtosIniciais = [
 async function setupDatabase() {
   // Função que inicializa o banco SQLite
   try {
-    db = await SQLite.openDatabaseAsync('loja_capivaras.db'); 
+    db = await SQLite.openDatabaseAsync('loja_capivarasCorreto.db'); 
     // Abre (ou cria) o banco de dados chamado "loja_capivaras.db"
 
     await db.runAsync(

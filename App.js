@@ -4,22 +4,26 @@
 // --------------------------------------------------
 
 import React, { useEffect, useState } from 'react'; 
-// React é a base do app, useState controla estados locais e useEffect lida com efeitos colaterais
+// Importa React e os hooks useState e useEffect
+// useState: para controlar estados locais (como apelido, modal, dbReady)
+// useEffect: executa efeitos colaterais após renderização
 
 import { View, Text } from 'react-native'; 
-// Componentes básicos da UI do React Native
+// Componentes básicos do React Native:
+// View: container para agrupar elementos
+// Text: exibe texto na tela
 
 import { NavigationContainer } from '@react-navigation/native'; 
-// Container que vai gerenciar toda a navegação do app
+// Container que gerencia toda a navegação entre telas
 
 import { createStackNavigator } from '@react-navigation/stack'; 
-// Cria a pilha de telas (stack navigation)
+// Cria a pilha de navegação (stack navigation)
 
 import * as SQLite from 'expo-sqlite'; 
 // Biblioteca para usar banco SQLite no app
 
 import AsyncStorage from '@react-native-async-storage/async-storage'; 
-// Armazenamento local simples (chave-valor), usado para guardar o apelido
+// Armazenamento local simples (chave-valor), usado aqui para guardar o apelido do usuário
 
 
 // ---------------- TELAS ----------------
@@ -30,19 +34,19 @@ import InserirProduto from './pages/InserirProduto';
 import BuscarNome from './pages/BuscarNome';
 import BuscarCor from './pages/BuscarCor';
 import DetalhesProduto from './pages/DetalhesProduto';
-// Importação de todas as telas/páginas que o usuário pode navegar
+// Importa todas as telas do app para navegação
 
 
 const Stack = createStackNavigator(); 
 // Cria a instância da pilha de navegação
 
 let db; 
-// Variável global para guardar a conexão com o banco
+// Variável global para armazenar a conexão com o banco SQLite
 
 
 // ---------------- PRODUTOS INICIAIS ----------------
 const produtosIniciais = [
-  // Array de produtos padrão que já vêm no app quando ele inicia
+  // Array de produtos padrões que serão inseridos no banco caso esteja vazio
   {
     nome: 'Estojo CaCapy',
     imagem: 'https://m.media-amazon.com/images/I/71KgMNrFLmL._UY1000_.jpg',
@@ -76,9 +80,10 @@ const produtosIniciais = [
 
 // ---------------- BANCO DE DADOS ----------------
 async function setupDatabase() {
+  // Função que inicializa o banco SQLite
   try {
     db = await SQLite.openDatabaseAsync('loja_capivaras.db'); 
-    // Abre (ou cria) o banco SQLite chamado "loja_capivaras.db"
+    // Abre (ou cria) o banco de dados chamado "loja_capivaras.db"
 
     await db.runAsync(
       `CREATE TABLE IF NOT EXISTS camisetas (
@@ -92,14 +97,20 @@ async function setupDatabase() {
     ); 
     // Cria a tabela "camisetas" caso ainda não exista
 
+    // ---------------- INSERÇÃO CONDICIONAL ----------------
+    const existentes = await db.getAllAsync('SELECT COUNT(*) as count FROM camisetas;');
+    // Verifica se já existem produtos na tabela
 
-    // Insere os produtos iniciais
-    for (const p of produtosIniciais) {
-      await db.runAsync(
-        'INSERT INTO camisetas (nome, imagem, cores, tamanhos, descricao) VALUES (?, ?, ?, ?, ?);',
-        [p.nome, p.imagem, p.cores, p.tamanhos, p.descricao]
-      );
+    if (existentes[0].count === 0) {
+      // Só insere os produtos iniciais se a tabela estiver vazia
+      for (const p of produtosIniciais) {
+        await db.runAsync(
+          'INSERT INTO camisetas (nome, imagem, cores, tamanhos, descricao) VALUES (?, ?, ?, ?, ?);',
+          [p.nome, p.imagem, p.cores, p.tamanhos, p.descricao]
+        );
+      }
     }
+
   } catch (err) {
     console.error('Erro ao inicializar o banco de dados:', err);
     throw err;
@@ -109,7 +120,7 @@ async function setupDatabase() {
 
 // ---------------- FUNÇÕES DE CRUD ----------------
 export async function getProdutos(query = 'SELECT * FROM camisetas') {
-  // Busca todos os produtos (ou executa um SELECT customizado)
+  // Função para buscar produtos no banco
   try {
     return await db.getAllAsync(query); 
   } catch (error) {
@@ -119,7 +130,7 @@ export async function getProdutos(query = 'SELECT * FROM camisetas') {
 }
 
 export async function insertProduto(produto) {
-  // Insere um novo produto no banco
+  // Função para inserir novo produto
   try {
     return await db.runAsync(
       'INSERT INTO camisetas (nome, imagem, cores, tamanhos, descricao) VALUES (?, ?, ?, ?, ?);',
@@ -132,7 +143,7 @@ export async function insertProduto(produto) {
 }
 
 export async function updateProduto(produto) {
-  // Atualiza os dados de um produto existente
+  // Função para atualizar um produto existente
   try {
     return await db.runAsync(
       'UPDATE camisetas SET nome=?, imagem=?, cores=?, tamanhos=?, descricao=? WHERE id=?;',
@@ -145,7 +156,7 @@ export async function updateProduto(produto) {
 }
 
 export async function deleteProduto(id) {
-  // Deleta um produto pelo ID
+  // Função para deletar um produto pelo ID
   try {
     return await db.runAsync('DELETE FROM camisetas WHERE id=?;', [id]);
   } catch (error) {
@@ -158,38 +169,39 @@ export async function deleteProduto(id) {
 // ---------------- APP PRINCIPAL ----------------
 export default function App() {
   const [apelido, setApelido] = useState(''); 
-  // Armazena o apelido do usuário
+  // Estado para armazenar o apelido do usuário
 
   const [modalVisible, setModalVisible] = useState(true); 
-  // Controla se o modal do apelido vai aparecer
+  // Estado para controlar se o modal de apelido está visível
 
   const [dbReady, setDbReady] = useState(false); 
-  // Indica se o banco já foi inicializado
+  // Estado para indicar se o banco foi inicializado
 
   useEffect(() => {
-    // Roda apenas uma vez quando o app abre
+    // Executa apenas uma vez quando o app é montado
     async function initApp() {
       try {
         await setupDatabase(); 
-        // Cria/abre o banco e insere os produtos iniciais
-        setDbReady(true);
+        // Inicializa o banco
+        setDbReady(true); // Banco pronto
 
         const storedApelido = await AsyncStorage.getItem('apelido'); 
-        // Recupera o apelido salvo no armazenamento local
+        // Recupera apelido salvo no AsyncStorage
         if (storedApelido) {
           setApelido(storedApelido); 
           setModalVisible(false); 
-          // Se já existir apelido salvo, não mostra o modal
+          // Se já existir apelido, não mostra o modal
         }
       } catch (error) {
         console.log('Erro ao inicializar app:', error);
       }
     }
     initApp();
-  }, []);
+  }, []); // Array vazio: roda apenas uma vez
 
-  // Enquanto o banco não estiver pronto, mostra tela de loading
+  // ---------------- RENDERIZAÇÃO ----------------
   if (!dbReady) {
+    // Enquanto o banco não estiver pronto, mostra mensagem de carregamento
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <Text>Carregando banco de dados...</Text>
@@ -199,7 +211,7 @@ export default function App() {
 
   return (
     <NavigationContainer>
-      {/* Se o modal estiver ativo, mostra a tela para digitar apelido */}
+      {/* Modal para digitar apelido */}
       {modalVisible && (
         <ModalApelido
           visible={modalVisible} 
@@ -210,15 +222,15 @@ export default function App() {
         />
       )}
 
-      {/* Configuração da pilha de navegação */}
+      {/* Stack de navegação */}
       <Stack.Navigator
         screenOptions={{
-          headerStyle: { backgroundColor: '#0d6efd' }, // Cor do cabeçalho
-          headerTintColor: '#fff', // Cor do texto/botões no cabeçalho
-          headerTitleStyle: { fontWeight: 'bold' }, // Negrito no título
+          headerStyle: { backgroundColor: '#0d6efd' },
+          headerTintColor: '#fff',
+          headerTitleStyle: { fontWeight: 'bold' },
         }}
       >
-        {/* Tela principal (Home), passando o apelido como prop */}
+        {/* Tela Home */}
         <Stack.Screen name="Home" options={{ title: 'Menu Principal' }}>
           {(props) => (
             <Home
@@ -229,7 +241,7 @@ export default function App() {
           )}
         </Stack.Screen>
 
-        {/* Outras telas da aplicação */}
+        {/* Outras telas */}
         <Stack.Screen
           name="ListaProdutos"
           component={ListaProdutos}

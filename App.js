@@ -4,11 +4,23 @@
 // --------------------------------------------------
 
 import React, { useEffect, useState } from 'react'; 
+// React é a base do app, useState controla estados locais e useEffect lida com efeitos colaterais
+
 import { View, Text } from 'react-native'; 
+// Componentes básicos da UI do React Native
+
 import { NavigationContainer } from '@react-navigation/native'; 
+// Container que vai gerenciar toda a navegação do app
+
 import { createStackNavigator } from '@react-navigation/stack'; 
+// Cria a pilha de telas (stack navigation)
+
 import * as SQLite from 'expo-sqlite'; 
+// Biblioteca para usar banco SQLite no app
+
 import AsyncStorage from '@react-native-async-storage/async-storage'; 
+// Armazenamento local simples (chave-valor), usado para guardar o apelido
+
 
 // ---------------- TELAS ----------------
 import ModalApelido from './pages/ModalApelido';
@@ -18,12 +30,19 @@ import InserirProduto from './pages/InserirProduto';
 import BuscarNome from './pages/BuscarNome';
 import BuscarCor from './pages/BuscarCor';
 import DetalhesProduto from './pages/DetalhesProduto';
+// Importação de todas as telas/páginas que o usuário pode navegar
+
 
 const Stack = createStackNavigator(); 
+// Cria a instância da pilha de navegação
+
 let db; 
+// Variável global para guardar a conexão com o banco
+
 
 // ---------------- PRODUTOS INICIAIS ----------------
 const produtosIniciais = [
+  // Array de produtos padrão que já vêm no app quando ele inicia
   {
     nome: 'Estojo CaCapy',
     imagem: 'https://m.media-amazon.com/images/I/71KgMNrFLmL._UY1000_.jpg',
@@ -54,11 +73,12 @@ const produtosIniciais = [
   },
 ];
 
+
 // ---------------- BANCO DE DADOS ----------------
 async function setupDatabase() {
   try {
     db = await SQLite.openDatabaseAsync('loja_capivaras.db'); 
-    // Nome novo -> força criar outro banco no Snack
+    // Abre (ou cria) o banco SQLite chamado "loja_capivaras.db"
 
     await db.runAsync(
       `CREATE TABLE IF NOT EXISTS camisetas (
@@ -70,9 +90,8 @@ async function setupDatabase() {
         descricao TEXT
       );`
     ); 
+    // Cria a tabela "camisetas" caso ainda não exista
 
-    // --- Dev mode: limpa sempre ---
-    await db.runAsync('DELETE FROM camisetas;');
 
     // Insere os produtos iniciais
     for (const p of produtosIniciais) {
@@ -87,8 +106,10 @@ async function setupDatabase() {
   }
 }
 
+
 // ---------------- FUNÇÕES DE CRUD ----------------
 export async function getProdutos(query = 'SELECT * FROM camisetas') {
+  // Busca todos os produtos (ou executa um SELECT customizado)
   try {
     return await db.getAllAsync(query); 
   } catch (error) {
@@ -98,6 +119,7 @@ export async function getProdutos(query = 'SELECT * FROM camisetas') {
 }
 
 export async function insertProduto(produto) {
+  // Insere um novo produto no banco
   try {
     return await db.runAsync(
       'INSERT INTO camisetas (nome, imagem, cores, tamanhos, descricao) VALUES (?, ?, ?, ?, ?);',
@@ -110,6 +132,7 @@ export async function insertProduto(produto) {
 }
 
 export async function updateProduto(produto) {
+  // Atualiza os dados de um produto existente
   try {
     return await db.runAsync(
       'UPDATE camisetas SET nome=?, imagem=?, cores=?, tamanhos=?, descricao=? WHERE id=?;',
@@ -122,6 +145,7 @@ export async function updateProduto(produto) {
 }
 
 export async function deleteProduto(id) {
+  // Deleta um produto pelo ID
   try {
     return await db.runAsync('DELETE FROM camisetas WHERE id=?;', [id]);
   } catch (error) {
@@ -130,22 +154,32 @@ export async function deleteProduto(id) {
   }
 }
 
+
 // ---------------- APP PRINCIPAL ----------------
 export default function App() {
   const [apelido, setApelido] = useState(''); 
+  // Armazena o apelido do usuário
+
   const [modalVisible, setModalVisible] = useState(true); 
+  // Controla se o modal do apelido vai aparecer
+
   const [dbReady, setDbReady] = useState(false); 
+  // Indica se o banco já foi inicializado
 
   useEffect(() => {
+    // Roda apenas uma vez quando o app abre
     async function initApp() {
       try {
         await setupDatabase(); 
+        // Cria/abre o banco e insere os produtos iniciais
         setDbReady(true);
 
         const storedApelido = await AsyncStorage.getItem('apelido'); 
+        // Recupera o apelido salvo no armazenamento local
         if (storedApelido) {
           setApelido(storedApelido); 
           setModalVisible(false); 
+          // Se já existir apelido salvo, não mostra o modal
         }
       } catch (error) {
         console.log('Erro ao inicializar app:', error);
@@ -154,6 +188,7 @@ export default function App() {
     initApp();
   }, []);
 
+  // Enquanto o banco não estiver pronto, mostra tela de loading
   if (!dbReady) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -164,6 +199,7 @@ export default function App() {
 
   return (
     <NavigationContainer>
+      {/* Se o modal estiver ativo, mostra a tela para digitar apelido */}
       {modalVisible && (
         <ModalApelido
           visible={modalVisible} 
@@ -174,13 +210,15 @@ export default function App() {
         />
       )}
 
+      {/* Configuração da pilha de navegação */}
       <Stack.Navigator
         screenOptions={{
-          headerStyle: { backgroundColor: '#0d6efd' },
-          headerTintColor: '#fff',
-          headerTitleStyle: { fontWeight: 'bold' },
+          headerStyle: { backgroundColor: '#0d6efd' }, // Cor do cabeçalho
+          headerTintColor: '#fff', // Cor do texto/botões no cabeçalho
+          headerTitleStyle: { fontWeight: 'bold' }, // Negrito no título
         }}
       >
+        {/* Tela principal (Home), passando o apelido como prop */}
         <Stack.Screen name="Home" options={{ title: 'Menu Principal' }}>
           {(props) => (
             <Home
@@ -191,6 +229,7 @@ export default function App() {
           )}
         </Stack.Screen>
 
+        {/* Outras telas da aplicação */}
         <Stack.Screen
           name="ListaProdutos"
           component={ListaProdutos}

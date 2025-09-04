@@ -1,0 +1,32 @@
+# dependências
+/node_modules
+
+# expo
+/.expo
+/web-build
+/dist
+/android
+/ios
+
+# arquivos e logs de debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+*.jks
+*.p12
+
+# arquivos de configuração local
+.env
+.env.*
+.DS_Store
+*.xcworkspace
+build/
+
+# cache e outros arquivos temporários
+/cache
+/temp
+/tmp
+/coverage
+.eslintcache
+.prettiercache
